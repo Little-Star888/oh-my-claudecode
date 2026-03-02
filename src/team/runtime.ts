@@ -721,7 +721,7 @@ export async function spawnWorkerForTask(
     const paneReady = await waitForPaneReady(paneId);
     if (!paneReady) {
       await killWorkerPane(runtime, workerNameValue, paneId);
-      await resetTaskToPending(root, taskId);
+      await resetTaskToPending(root, taskId, runtime.teamName, runtime.cwd);
       throw new Error(`worker_pane_not_ready:${workerNameValue}`);
     }
 
