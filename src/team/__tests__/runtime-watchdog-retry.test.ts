@@ -157,7 +157,7 @@ describe('watchdogCliWorkers dead-pane retry behavior', () => {
     const runtime = makeRuntime(cwd, teamName);
     const stop = watchdogCliWorkers(runtime, 20);
 
-    await waitFor(() => tmuxMocks.spawnWorkerInPane.mock.calls.length > 0);
+    await waitFor(() => tmuxMocks.spawnWorkerInPane.mock.calls.length > 0, 2000);
     stop();
 
     const task = JSON.parse(readFileSync(join(root, 'tasks', '1.json'), 'utf-8')) as {
