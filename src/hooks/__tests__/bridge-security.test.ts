@@ -352,6 +352,14 @@ describe('Permission Handler - Dangerous Commands', () => {
       expect(result.hookSpecificOutput?.decision?.reason).toContain('--no-verify');
     });
 
+    it('should not deny quoted commit messages that mention no-verify', () => {
+      const result = processPermissionRequest(
+        makePermissionInput('Bash', 'git commit -m "docs: explain --no-verify behavior"'),
+      );
+      expect(result.continue).toBe(true);
+      expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('deny');
+    });
+
     it('should handle missing command in tool_input', () => {
       const result = processPermissionRequest(makePermissionInput('Bash', undefined));
       expect(result.continue).toBe(true);

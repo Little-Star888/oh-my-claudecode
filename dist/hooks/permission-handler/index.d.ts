@@ -23,6 +23,7 @@ export interface HookOutput {
         };
     };
 }
+export declare function isGitNoVerifyBypass(command: string): boolean;
 export declare function getClaudePermissionAllowEntries(directory: string): string[];
 export declare function hasClaudePermissionApproval(directory: string, toolName: 'Edit' | 'Write' | 'Bash', command?: string): boolean;
 export declare function getClaudePermissionAskEntries(directory: string): string[];

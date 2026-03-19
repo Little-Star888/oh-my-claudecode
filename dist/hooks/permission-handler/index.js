@@ -32,6 +32,76 @@ const SAFE_HEREDOC_PATTERNS = [
     /^git commit\b/,
     /^git tag\b/,
 ];
+const GIT_NO_VERIFY_SUBCOMMANDS = new Set(['commit', 'push']);
+function tokenizeFirstShellLine(command) {
+    const firstLine = command.trim().split('\n')[0] ?? '';
+    const tokens = [];
+    let current = '';
+    let quote = null;
+    let escaping = false;
+    for (const char of firstLine) {
+        if (escaping) {
+            current += char;
+            escaping = false;
+            continue;
+        }
+        if (quote === "'") {
+            if (char === "'") {
+                quote = null;
+            }
+            else {
+                current += char;
+            }
+            continue;
+        }
+        if (quote === '"') {
+            if (char === '"') {
+                quote = null;
+            }
+            else if (char === '\\') {
+                escaping = true;
+            }
+            else {
+                current += char;
+            }
+            continue;
+        }
+        if (char === "'" || char === '"') {
+            quote = char;
+            continue;
+        }
+        if (char === '\\') {
+            escaping = true;
+            continue;
+        }
+        if (/\s/.test(char)) {
+            if (current) {
+                tokens.push(current);
+                current = '';
+            }
+            continue;
+        }
+        current += char;
+    }
+    if (escaping) {
+        current += '\\';
+    }
+    if (current) {
+        tokens.push(current);
+    }
+    return tokens;
+}
+export function isGitNoVerifyBypass(command) {
+    const tokens = tokenizeFirstShellLine(command);
+    if (tokens[0] !== 'git') {
+        return false;
+    }
+    const subcommand = tokens[1];
+    if (!subcommand || !GIT_NO_VERIFY_SUBCOMMANDS.has(subcommand)) {
+        return false;
+    }
+    return tokens.slice(2).includes('--no-verify');
+}
 const BACKGROUND_MUTATION_SUBAGENTS = new Set([
     'executor',
     'designer',
@@ -254,6 +324,18 @@ export function processPermissionRequest(input) {
         return { continue: true };
     }
     const shouldAskBashPermission = hasClaudePermissionAsk(input.cwd, 'Bash', command);
+    if (isGitNoVerifyBypass(command)) {
+        return {
+            continue: true,
+            hookSpecificOutput: {
+                hookEventName: 'PermissionRequest',
+                decision: {
+                    behavior: 'deny',
+                    reason: 'Git hook bypass via `--no-verify` is not allowed for agent-driven git commands. Remove `--no-verify` and retry.',
+                },
+            },
+        };
+    }
     // Auto-allow safe commands
     if (!shouldAskBashPermission && isSafeCommand(command)) {
         return {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { isSafeCommand, isHeredocWithSafeBase, isActiveModeRunning, processPermissionRequest, } from '../index.js';
+import { isSafeCommand, isHeredocWithSafeBase, isGitNoVerifyBypass, isActiveModeRunning, processPermissionRequest, } from '../index.js';
 describe('permission-handler', () => {
     describe('isSafeCommand', () => {
         describe('safe commands', () => {
@@ -236,6 +236,29 @@ describe('permission-handler', () => {
             });
         });
     });
+    describe('isGitNoVerifyBypass', () => {
+        it('returns true for git commit with no-verify before message', () => {
+            expect(isGitNoVerifyBypass('git commit --no-verify -m "test"')).toBe(true);
+        });
+        it('returns true for git commit with no-verify after message', () => {
+            expect(isGitNoVerifyBypass('git commit -m "test" --no-verify')).toBe(true);
+        });
+        it('returns true for git push with no-verify', () => {
+            expect(isGitNoVerifyBypass('git push --no-verify origin dev')).toBe(true);
+        });
+        it('returns false for quoted commit messages that mention no-verify', () => {
+            expect(isGitNoVerifyBypass('git commit -m "docs: explain --no-verify behavior"')).toBe(false);
+        });
+        it('returns false when heredoc body mentions no-verify without the flag', () => {
+            expect(isGitNoVerifyBypass(`git commit -m "$(cat <<'EOF'
+docs: explain --no-verify behavior
+EOF
+)"`)).toBe(false);
+        });
+        it('returns false for normal git commit flows', () => {
+            expect(isGitNoVerifyBypass('git commit -m "test"')).toBe(false);
+        });
+    });
     describe('isActiveModeRunning', () => {
         const testDir = '/tmp/omc-permission-test';
         const stateDir = path.join(testDir, '.omc', 'state');
@@ -397,6 +420,45 @@ describe('permission-handler', () => {
                 const result = processPermissionRequest(createInput(cmd));
                 expect(result.continue).toBe(true);
                 expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
+            });
+            it('should deny git commit with no-verify before message', () => {
+                const result = processPermissionRequest(createInput('git commit --no-verify -m "test"'));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).toBe('deny');
+                expect(result.hookSpecificOutput?.decision?.reason).toContain('--no-verify');
+            });
+            it('should deny git commit with no-verify after message', () => {
+                const result = processPermissionRequest(createInput('git commit -m "test" --no-verify'));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).toBe('deny');
+            });
+            it('should deny git push with no-verify', () => {
+                const result = processPermissionRequest(createInput('git push --no-verify origin dev'));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).toBe('deny');
+            });
+            it('should deny git commit heredoc when no-verify is present', () => {
+                const cmd = `git commit --no-verify -m "$(cat <<'EOF'
+feat: add new feature
+EOF
+)"`;
+                const result = processPermissionRequest(createInput(cmd));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).toBe('deny');
+            });
+            it('should not deny quoted commit messages that mention no-verify', () => {
+                const result = processPermissionRequest(createInput('git commit -m "docs: explain --no-verify behavior"'));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('deny');
+            });
+            it('should not deny heredoc commit bodies that mention no-verify without the flag', () => {
+                const cmd = `git commit -m "$(cat <<'EOF'
+docs: explain --no-verify behavior
+EOF
+)"`;
+                const result = processPermissionRequest(createInput(cmd));
+                expect(result.continue).toBe(true);
+                expect(result.hookSpecificOutput?.decision?.behavior).not.toBe('deny');
             });
             it('should auto-allow git commit with heredoc message', () => {
                 const cmd = `git commit -m "$(cat <<'EOF'\nfeat: add new feature\n\nDetailed description here.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n)"`;
