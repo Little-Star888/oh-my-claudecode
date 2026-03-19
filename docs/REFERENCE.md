@@ -11,7 +11,7 @@ Complete reference for oh-my-claudecode. For quick start, see the main [README.m
 - [CLI Commands: ask/team/session](#cli-commands-askteamsession)
 - [Legacy MCP Team Runtime Tools (Deprecated)](#legacy-mcp-team-runtime-tools-deprecated)
 - [Agents (29 Total)](#agents-29-total)
-- [Skills (34 Total)](#skills-34-total)
+- [Skills (35 Total)](#skills-35-total)
 - [Slash Commands](#slash-commands)
 - [Hooks System](#hooks-system)
 - [Magic Keywords](#magic-keywords)
@@ -366,9 +366,9 @@ Always use `oh-my-claudecode:` prefix when calling via Task tool.
 
 ---
 
-## Skills (34 Total)
+## Skills (35 Total)
 
-Includes **33 canonical skills + 1 deprecated alias** (`psm`).
+Includes **34 canonical skills + 1 deprecated alias** (`psm`).
 
 | Skill                     | Description                                                      | Manual Command                              |
 | ------------------------- | ---------------------------------------------------------------- | ------------------------------------------- |
@@ -407,6 +407,7 @@ Includes **33 canonical skills + 1 deprecated alias** (`psm`).
 | `trace`                   | Evidence-driven tracing lane with parallel tracer hypotheses     | `/oh-my-claudecode:trace`                   |
 | `ultraqa`                 | QA cycle until goal is met                                       | `/oh-my-claudecode:ultraqa`                 |
 | `ultrawork`               | Maximum parallel throughput mode                                 | `/oh-my-claudecode:ultrawork`               |
+| `visual-verdict`          | Structured visual QA verdict for screenshot/reference comparisons | `/oh-my-claudecode:visual-verdict`          |
 | `writer-memory`           | Agentic memory system for writing projects                       | `/oh-my-claudecode:writer-memory`           |
 
 `psm` | **Deprecated** compatibility alias for `project-session-manager`
@@ -442,6 +443,7 @@ All installed skills are available as slash commands with the prefix `/oh-my-cla
 | `/oh-my-claudecode:release`                 | Automated release workflow                                                                    |
 | `/oh-my-claudecode:mcp-setup`               | Configure MCP servers                                                                         |
 | `/oh-my-claudecode:trace`                   | Evidence-driven tracing lane that orchestrates parallel tracer hypotheses in team mode        |
+| `/oh-my-claudecode:visual-verdict <task>`  | Structured visual QA verdict for screenshot/reference comparisons                             |
 | `/oh-my-claudecode:psm <arguments>`         | Deprecated alias for project session manager                                                  |
 
 ### Skill Pipeline Metadata (Preview)
