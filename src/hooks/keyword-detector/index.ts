@@ -42,7 +42,7 @@ export interface DetectedKeyword {
  * Keyword patterns for each mode
  */
 const KEYWORD_PATTERNS: Record<KeywordType, RegExp> = {
-  cancel: /\b(cancelomc|stopomc)\b|(취소|캔슬|스톱)/i,
+  cancel: /\b(cancelomc|stopomc)\b/i,
   ralph: /\b(ralph)\b(?!-)|(랄프)/i,
   autopilot: /\b(autopilot|auto[\s-]?pilot|fullsend|full\s+auto)\b|(오토파일럿)/i,
   ultrawork: /\b(ultrawork|ulw)\b|(울트라워크)/i,
@@ -116,7 +116,7 @@ export function sanitizeForKeywordDetection(text: string): string {
 
 const INFORMATIONAL_INTENT_PATTERNS: RegExp[] = [
   /\b(?:what(?:'s|\s+is)|what\s+are|how\s+(?:to|do\s+i)\s+use|explain|explanation|tell\s+me\s+about|describe)\b/i,
-  /(?:뭐야|무엇(?:이야|인가요)?|어떻게|설명|사용법)/u,
+  /(?:뭐야|무엇(?:이야|인가요)?|어떻게|설명|사용법|알려줘|소개해?\s?줘|기능|방법)/u,
   /(?:とは|って何|使い方|説明)/u,
   /(?:什么是|怎(?:么|樣)用|如何使用|解释|說明|说明)/u,
 ];
