@@ -790,9 +790,21 @@ export function cleanupStaleAgents(directory: string): number {
 /**
  * Get count of active (running) agents
  */
-export function getActiveAgentCount(directory: string): number {
+export interface ActiveAgentSnapshot {
+  count: number;
+  lastUpdatedAt?: string;
+}
+
+export function getActiveAgentSnapshot(directory: string): ActiveAgentSnapshot {
   const state = readTrackingState(directory);
-  return state.agents.filter((a) => a.status === "running").length;
+  return {
+    count: state.agents.filter((a) => a.status === "running").length,
+    lastUpdatedAt: state.last_updated,
+  };
+}
+
+export function getActiveAgentCount(directory: string): number {
+  return getActiveAgentSnapshot(directory).count;
 }
 
 /**

@@ -48,7 +48,7 @@ import {
 import { checkAutopilot } from '../autopilot/enforcement.js';
 import { readTeamPipelineState } from '../team-pipeline/state.js';
 import type { TeamPipelinePhase } from '../team-pipeline/types.js';
-import { getActiveAgentCount } from '../subagent-tracker/index.js';
+import { getActiveAgentSnapshot } from '../subagent-tracker/index.js';
 
 export interface ToolErrorState {
   tool_name: string;
@@ -851,6 +851,7 @@ When done, run \`/oh-my-claudecode:cancel\` to cleanly exit.
 
 const RALPLAN_STOP_BLOCKER_MAX = 30;
 const RALPLAN_STOP_BLOCKER_TTL_MS = 45 * 60 * 1000; // 45 min
+const RALPLAN_ACTIVE_AGENT_RECENCY_WINDOW_MS = 5_000;
 
 interface RalplanState {
   active: boolean;
@@ -903,10 +904,18 @@ async function checkRalplan(
     };
   }
 
-  // Orchestrators are allowed to go idle while delegated work is still active.
-  // Delegation waits are expected, so clear any accumulated breaker budget and
-  // let enforcement resume from a clean slate after the running subagents finish.
-  if (getActiveAgentCount(workingDir) > 0) {
+  // Orchestrators are allowed to go idle while delegated work is still active,
+  // but the raw running-agent count can lag behind the real lifecycle because
+  // SubagentStop/post-tool-use bookkeeping lands after the stop event. Only
+  // trust the bypass when the tracker itself was updated recently enough to
+  // look live; otherwise fail closed and keep consensus enforcement active.
+  const activeAgents = getActiveAgentSnapshot(workingDir);
+  const activeAgentStateUpdatedAt = activeAgents.lastUpdatedAt ? new Date(activeAgents.lastUpdatedAt).getTime() : NaN;
+  const hasFreshActiveAgentState =
+    Number.isFinite(activeAgentStateUpdatedAt)
+    && Date.now() - activeAgentStateUpdatedAt <= RALPLAN_ACTIVE_AGENT_RECENCY_WINDOW_MS;
+
+  if (activeAgents.count > 0 && hasFreshActiveAgentState) {
     writeStopBreaker(workingDir, 'ralplan', 0, sessionId);
     return {
       shouldBlock: false,
