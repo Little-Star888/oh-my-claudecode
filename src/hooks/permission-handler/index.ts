@@ -346,7 +346,10 @@ function isSafeRepoPath(
     return false;
   }
 
-  const worktreeRoot = getWorktreeRoot(cwd) || cwd;
+  const worktreeRoot = getWorktreeRoot(cwd);
+  if (!worktreeRoot) {
+    return false;
+  }
   const resolvedPath = path.resolve(cwd, inputPath);
 
   let canonicalPath = resolvedPath;

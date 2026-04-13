@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { execFileSync } from 'child_process';
 import {
   buildPromptWithSystemContext,
   resolveSystemPrompt,
@@ -26,6 +27,13 @@ import {
 import { validatePath } from '../../lib/worktree-paths.js';
 import { normalizeHookInput, SENSITIVE_HOOKS, isAlreadyCamelCase, HookInputSchema } from '../bridge-normalize.js';
 import { readAutopilotState } from '../autopilot/state.js';
+
+function initializeGitRepo(directory: string): void {
+  execFileSync('git', ['init', '--quiet'], {
+    cwd: directory,
+    stdio: 'pipe',
+  });
+}
 
 // ============================================================================
 // MCP Prompt Injection Boundary Tests
@@ -319,7 +327,7 @@ describe('Permission Handler - Dangerous Commands', () => {
     beforeEach(() => {
       testDir = mkdtempSync(join(tmpdir(), 'permission-safe-'));
       mkdirSync(join(testDir, 'src', '__tests__'), { recursive: true });
-      mkdirSync(join(testDir, '.git'), { recursive: true });
+      initializeGitRepo(testDir);
       writeFileSync(join(testDir, 'src', 'sample.ts'), 'export const value = 1;\n');
       writeFileSync(join(testDir, 'src', '__tests__', 'sample.test.ts'), 'test("x", () => {});\n');
     });
@@ -336,6 +344,21 @@ describe('Permission Handler - Dangerous Commands', () => {
     it('should allow targeted single-test commands', () => {
       expect(isSafeTargetedLocalTestCommand('vitest run src/__tests__/sample.test.ts', testDir)).toBe(true);
       expect(isSafeTargetedLocalTestCommand('npm test -- --run src/__tests__/sample.test.ts', testDir)).toBe(true);
+    });
+
+    it('should reject repo-scoped commands from non-git temp dirs', () => {
+      const nonGitDir = mkdtempSync(join(tmpdir(), 'permission-safe-non-git-'));
+
+      try {
+        mkdirSync(join(nonGitDir, 'src', '__tests__'), { recursive: true });
+        writeFileSync(join(nonGitDir, 'src', 'sample.ts'), 'export const value = 1;\n');
+        writeFileSync(join(nonGitDir, 'src', '__tests__', 'sample.test.ts'), 'test("x", () => {});\n');
+
+        expect(isSafeRepoInspectionCommand('cat src/sample.ts', nonGitDir)).toBe(false);
+        expect(isSafeTargetedLocalTestCommand('vitest run src/__tests__/sample.test.ts', nonGitDir)).toBe(false);
+      } finally {
+        rmSync(nonGitDir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -363,7 +386,7 @@ describe('Permission Handler - Dangerous Commands', () => {
       const testDir = mkdtempSync(join(tmpdir(), 'permission-request-safe-test-'));
       try {
         mkdirSync(join(testDir, 'src', '__tests__'), { recursive: true });
-        mkdirSync(join(testDir, '.git'), { recursive: true });
+        initializeGitRepo(testDir);
         writeFileSync(join(testDir, 'src', '__tests__', 'sample.test.ts'), 'test("x", () => {});\n');
 
         const result = processPermissionRequest({
@@ -373,6 +396,31 @@ describe('Permission Handler - Dangerous Commands', () => {
 
         expect(result.continue).toBe(true);
         expect(result.hookSpecificOutput?.decision?.behavior).toBe('allow');
+      } finally {
+        rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should not auto-allow repo-scoped Bash commands outside a git worktree', () => {
+      const testDir = mkdtempSync(join(tmpdir(), 'permission-request-non-git-'));
+      try {
+        mkdirSync(join(testDir, 'src', '__tests__'), { recursive: true });
+        writeFileSync(join(testDir, 'src', 'sample.ts'), 'export const value = 1;\n');
+        writeFileSync(join(testDir, 'src', '__tests__', 'sample.test.ts'), 'test("x", () => {});\n');
+
+        const inspectionResult = processPermissionRequest({
+          ...makePermissionInput('Bash', 'cat src/sample.ts'),
+          cwd: testDir,
+        });
+        expect(inspectionResult.continue).toBe(true);
+        expect(inspectionResult.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
+
+        const testResult = processPermissionRequest({
+          ...makePermissionInput('Bash', 'vitest run src/__tests__/sample.test.ts'),
+          cwd: testDir,
+        });
+        expect(testResult.continue).toBe(true);
+        expect(testResult.hookSpecificOutput?.decision?.behavior).not.toBe('allow');
       } finally {
         rmSync(testDir, { recursive: true, force: true });
       }
