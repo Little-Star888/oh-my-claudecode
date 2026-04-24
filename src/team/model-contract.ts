@@ -182,9 +182,10 @@ const CONTRACTS: Record<CliAgentType, CliAgentContract> = {
     agentType: 'codex',
     binary: 'codex',
     installInstructions: 'Install Codex CLI: npm install -g @openai/codex',
-    supportsPromptMode: true,
-    // Codex accepts prompt as a positional argument (no flag needed):
-    //   codex [OPTIONS] [PROMPT]
+    // Team workers must be persistent interactive panes. Do not use `codex exec`
+    // or positional prompt mode here; runtime dispatch writes inbox.md and nudges
+    // the live Codex TUI with `codex` as the worker process.
+    supportsPromptMode: false,
     buildLaunchArgs(model?: string, extraFlags: string[] = []): string[] {
       const args = ['--dangerously-bypass-approvals-and-sandbox'];
       if (model) args.push('--model', model);

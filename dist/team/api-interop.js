@@ -8,6 +8,7 @@ import { listDispatchRequests, markDispatchRequestDelivered, markDispatchRequest
 import { generateMailboxTriggerMessage } from './worker-bootstrap.js';
 import { shutdownTeam } from './runtime.js';
 import { shutdownTeamV2 } from './runtime-v2.js';
+import { inspectTeamWorktreeCleanupSafety } from './git-worktree.js';
 import { createSwallowedErrorLogger } from '../lib/swallowed-error.js';
 const TEAM_UPDATE_TASK_MUTABLE_FIELDS = new Set(['subject', 'description', 'blocked_by', 'requires_code_change']);
 const TEAM_UPDATE_TASK_REQUEST_FIELDS = new Set(['team_name', 'task_id', 'workingDirectory', ...TEAM_UPDATE_TASK_MUTABLE_FIELDS]);
@@ -134,9 +135,26 @@ function isRuntimeV2Config(config) {
 function isLegacyRuntimeConfig(config) {
     return !!config && typeof config === 'object' && Array.isArray(config.agentTypes);
 }
+function assertNoNativeWorktreeCleanupEvidence(teamName, cwd) {
+    const safety = inspectTeamWorktreeCleanupSafety(teamName, cwd);
+    if (!safety.hasEvidence)
+        return;
+    const evidence = safety.blockers.length > 0
+        ? safety.blockers
+        : safety.entries.map((entry) => ({
+            workerName: entry.workerName,
+            path: entry.path,
+            reason: 'worktree_cleanup_evidence_present',
+        }));
+    const details = evidence
+        .map((item) => `${item.workerName}:${item.reason}:${item.path}`)
+        .join(';');
+    throw new Error(`cleanup_blocked:worktree_cleanup_evidence_present:${details}`);
+}
 async function executeTeamCleanupViaRuntime(teamName, cwd) {
     const config = await teamReadConfig(teamName, cwd);
     if (!config) {
+        assertNoNativeWorktreeCleanupEvidence(teamName, cwd);
         await teamCleanup(teamName, cwd);
         return;
     }
@@ -155,6 +173,7 @@ async function executeTeamCleanupViaRuntime(teamName, cwd) {
         await shutdownTeam(teamName, sessionName, cwd, 30_000, undefined, leaderPaneId, legacyConfig.tmuxOwnsWindow === true);
         return;
     }
+    assertNoNativeWorktreeCleanupEvidence(teamName, cwd);
     await teamCleanup(teamName, cwd);
 }
 function readTeamStateRootFromFile(path) {

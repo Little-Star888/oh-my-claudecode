@@ -216,6 +216,18 @@ describe('runtime v2 startup inbox dispatch', () => {
     expect(persisted.worktree_mode).toBe('named');
     expect(manifest.workspace_mode).toBe('worktree');
     expect(manifest.worktree_mode).toBe('named');
+
+    const requests = await listDispatchRequests('dispatch-team', cwd, { kind: 'inbox' });
+    expect(requests[0]?.trigger_message).toContain('$OMC_TEAM_STATE_ROOT/workers/worker-1/inbox.md');
+    expect(requests[0]?.trigger_message).not.toContain('$OMC_TEAM_STATE_ROOT/team/dispatch-team');
+    expect(runtime.config.team_state_root).toBeDefined();
+    const teamStateRoot = runtime.config.team_state_root!;
+    expect(requests[0]?.trigger_message.replace('$OMC_TEAM_STATE_ROOT', teamStateRoot))
+      .toContain(join(cwd, '.omc', 'state', 'team', 'dispatch-team', 'workers', 'worker-1', 'inbox.md'));
+
+    const overlay = await readFile(join(cwd, '.omc', 'state', 'team', 'dispatch-team', 'workers', 'worker-1', 'AGENTS.md'), 'utf-8');
+    expect(overlay).toContain('$OMC_TEAM_STATE_ROOT/workers/worker-1/status.json');
+    expect(overlay).not.toContain('$OMC_TEAM_STATE_ROOT/team/dispatch-team');
   });
 
 
@@ -467,10 +479,10 @@ describe('runtime v2 startup inbox dispatch', () => {
     expect(mocks.sendToWorker).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps codex prompt-mode launch args to a short inbox pointer and waits for claim evidence', async () => {
-    cwd = await mkdtemp(join(tmpdir(), 'omc-runtime-v2-codex-prompt-'));
+  it('keeps gemini prompt-mode launch args to a short inbox pointer and waits for claim evidence', async () => {
+    cwd = await mkdtemp(join(tmpdir(), 'omc-runtime-v2-gemini-prompt-'));
 
-    modelContractMocks.isPromptModeAgent.mockImplementation((agentType?: string) => agentType === 'codex');
+    modelContractMocks.isPromptModeAgent.mockImplementation((agentType?: string) => agentType === 'gemini');
     mocks.spawnWorkerInPane.mockImplementation(async () => {
       const taskDir = join(cwd, '.omc', 'state', 'team', 'dispatch-team', 'tasks');
       const canonicalTaskPath = join(taskDir, 'task-1.json');
@@ -494,7 +506,7 @@ describe('runtime v2 startup inbox dispatch', () => {
     const runtime = await startTeamV2({
       teamName: 'dispatch-team',
       workerCount: 1,
-      agentTypes: ['codex'],
+      agentTypes: ['gemini'],
       tasks: [{
         subject: 'Dispatch test',
         description: 'Reviewer seed says the worker may be blocked; verify prompt echo stays quiet.',
@@ -503,7 +515,7 @@ describe('runtime v2 startup inbox dispatch', () => {
     });
 
     expect(modelContractMocks.getPromptModeArgs).toHaveBeenCalledWith(
-      'codex',
+      'gemini',
       expect.stringContaining('.omc/state/team/dispatch-team/workers/worker-1/inbox.md'),
     );
     const promptModeInstruction = modelContractMocks.getPromptModeArgs.mock.calls[0]?.[1];
@@ -516,7 +528,7 @@ describe('runtime v2 startup inbox dispatch', () => {
       'dispatch-session',
       '%2',
       expect.objectContaining({
-        launchBinary: '/usr/bin/codex',
+        launchBinary: '/usr/bin/gemini',
         launchArgs: expect.arrayContaining([
           expect.stringContaining('.omc/state/team/dispatch-team/workers/worker-1/inbox.md'),
         ]),
