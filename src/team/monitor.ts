@@ -167,6 +167,7 @@ export async function readMonitorSnapshot(
     return {
       taskStatusById: parsed.taskStatusById ?? {},
       workerAliveByName: parsed.workerAliveByName ?? {},
+      workerLivenessByName: parsed.workerLivenessByName ?? {},
       workerStateByName: parsed.workerStateByName ?? {},
       workerTurnCountByName: parsed.workerTurnCountByName ?? {},
       workerTaskIdByName: parsed.workerTaskIdByName ?? {},
@@ -495,7 +496,8 @@ export function diffSnapshots(
   // Worker state transitions
   for (const [workerName, currentAlive] of Object.entries(current.workerAliveByName)) {
     const prevAlive = prev.workerAliveByName[workerName];
-    if (prevAlive === true && !currentAlive) {
+    const currentLiveness = current.workerLivenessByName?.[workerName] ?? (currentAlive ? 'alive' : 'dead');
+    if (prevAlive === true && currentLiveness === 'dead') {
       events.push({
         type: 'worker_stopped',
         worker: workerName,
