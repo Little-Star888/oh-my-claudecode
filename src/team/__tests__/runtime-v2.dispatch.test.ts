@@ -156,6 +156,8 @@ describe('runtime v2 startup inbox dispatch', () => {
       const workerName = typeof args[1] === 'string' ? args[1] : 'worker-1';
       return { OMC_TEAM_WORKER: `${teamName}/${workerName}` };
     });
+    modelContractMocks.resolveAgentReasoningEffort.mockReturnValue(undefined);
+    modelContractMocks.resolveWorkerLaunchExtraFlags.mockReturnValue([]);
     modelContractMocks.isPromptModeAgent.mockReturnValue(false);
     modelContractMocks.getPromptModeArgs.mockImplementation((_agentType: string, instruction: string) => [instruction]);
     mergeMocks.recoverFromRestart.mockResolvedValue(undefined);
