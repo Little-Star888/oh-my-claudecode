@@ -249,6 +249,13 @@ function mergeTeamConfigSources(config: TeamConfig | null, manifest: TeamManifes
 
 export async function teamInit(config: TeamConfig, cwd: string): Promise<void> {
   await teamSaveConfig(config, cwd);
+  await mkdir(absPath(cwd, TeamPaths.tasks(config.name)), { recursive: true });
+  await mkdir(absPath(cwd, TeamPaths.workers(config.name)), { recursive: true });
+  await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'claims')), { recursive: true });
+  await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'mailbox')), { recursive: true });
+  await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'events')), { recursive: true });
+  await Promise.all(config.workers.map((worker) =>
+    mkdir(absPath(cwd, TeamPaths.workerDir(config.name, worker.name)), { recursive: true })));
 }
 
 export async function teamSaveConfig(config: TeamConfig, cwd: string): Promise<void> {

@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises';
+import { mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { TeamPaths, absPath } from './state-paths.js';
@@ -28,6 +28,12 @@ export function teamEventLogPath(teamName, cwd) {
 export { writeAtomic };
 export async function initTeamState(config, cwd) {
     await saveTeamConfig(config, cwd);
+    await mkdir(absPath(cwd, TeamPaths.tasks(config.name)), { recursive: true });
+    await mkdir(absPath(cwd, TeamPaths.workers(config.name)), { recursive: true });
+    await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'claims')), { recursive: true });
+    await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'mailbox')), { recursive: true });
+    await mkdir(absPath(cwd, join(TeamPaths.root(config.name), 'events')), { recursive: true });
+    await Promise.all(config.workers.map((worker) => mkdir(absPath(cwd, TeamPaths.workerDir(config.name, worker.name)), { recursive: true })));
 }
 export async function writeTeamManifestV2(manifest, cwd) {
     await writeAtomic(absPath(cwd, TeamPaths.manifest(manifest.name)), JSON.stringify(manifest, null, 2));

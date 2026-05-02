@@ -27710,6 +27710,12 @@ function mergeTeamConfigSources(config2, manifest) {
 }
 async function teamInit(config2, cwd2) {
   await teamSaveConfig(config2, cwd2);
+  await (0, import_promises7.mkdir)(absPath(cwd2, TeamPaths.tasks(config2.name)), { recursive: true });
+  await (0, import_promises7.mkdir)(absPath(cwd2, TeamPaths.workers(config2.name)), { recursive: true });
+  await (0, import_promises7.mkdir)(absPath(cwd2, (0, import_node_path6.join)(TeamPaths.root(config2.name), "claims")), { recursive: true });
+  await (0, import_promises7.mkdir)(absPath(cwd2, (0, import_node_path6.join)(TeamPaths.root(config2.name), "mailbox")), { recursive: true });
+  await (0, import_promises7.mkdir)(absPath(cwd2, (0, import_node_path6.join)(TeamPaths.root(config2.name), "events")), { recursive: true });
+  await Promise.all(config2.workers.map((worker) => (0, import_promises7.mkdir)(absPath(cwd2, TeamPaths.workerDir(config2.name, worker.name)), { recursive: true })));
 }
 async function teamSaveConfig(config2, cwd2) {
   await writeAtomic(absPath(cwd2, TeamPaths.config(config2.name)), JSON.stringify(config2, null, 2));

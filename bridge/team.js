@@ -687,6 +687,12 @@ function mergeTeamConfigSources(config, manifest) {
 }
 async function teamInit(config, cwd) {
   await teamSaveConfig(config, cwd);
+  await mkdir(absPath(cwd, TeamPaths.tasks(config.name)), { recursive: true });
+  await mkdir(absPath(cwd, TeamPaths.workers(config.name)), { recursive: true });
+  await mkdir(absPath(cwd, join3(TeamPaths.root(config.name), "claims")), { recursive: true });
+  await mkdir(absPath(cwd, join3(TeamPaths.root(config.name), "mailbox")), { recursive: true });
+  await mkdir(absPath(cwd, join3(TeamPaths.root(config.name), "events")), { recursive: true });
+  await Promise.all(config.workers.map((worker) => mkdir(absPath(cwd, TeamPaths.workerDir(config.name, worker.name)), { recursive: true })));
 }
 async function teamSaveConfig(config, cwd) {
   await writeAtomic(absPath(cwd, TeamPaths.config(config.name)), JSON.stringify(config, null, 2));
@@ -1481,7 +1487,7 @@ var init_dispatch_queue = __esm({
 });
 
 // src/team/state.ts
-import { readFile as readFile4 } from "fs/promises";
+import { mkdir as mkdir3, readFile as readFile4 } from "fs/promises";
 import { existsSync as existsSync5 } from "fs";
 import { join as join6 } from "path";
 async function readWorkerStatus(teamName, workerName, cwd) {
@@ -2821,7 +2827,7 @@ var init_tmux_session = __esm({
 // src/team/events.ts
 import { randomUUID as randomUUID4 } from "crypto";
 import { dirname as dirname4 } from "path";
-import { mkdir as mkdir3, readFile as readFile5, appendFile as appendFile2 } from "fs/promises";
+import { mkdir as mkdir4, readFile as readFile5, appendFile as appendFile2 } from "fs/promises";
 import { existsSync as existsSync7 } from "fs";
 function filterTeamEvents(events, options = {}) {
   let afterIndex = -1;
@@ -2844,7 +2850,7 @@ async function appendTeamEvent2(teamName, event, cwd) {
     ...event
   };
   const p = absPath(cwd, TeamPaths.events(teamName));
-  await mkdir3(dirname4(p), { recursive: true });
+  await mkdir4(dirname4(p), { recursive: true });
   await appendFile2(p, `${JSON.stringify(full)}
 `, "utf8");
   return full;
@@ -5237,7 +5243,7 @@ var init_model_contract = __esm({
 });
 
 // src/team/worker-bootstrap.ts
-import { mkdir as mkdir4, writeFile as writeFile3, appendFile as appendFile3 } from "fs/promises";
+import { mkdir as mkdir5, writeFile as writeFile3, appendFile as appendFile3 } from "fs/promises";
 import { join as join14, dirname as dirname8 } from "path";
 function buildInstructionPath(...parts) {
   return join14(...parts).replaceAll("\\", "/");
@@ -5433,7 +5439,7 @@ ${bootstrapInstructions}
 }
 async function composeInitialInbox(teamName, workerName, content, cwd, cliOutputContract) {
   const inboxPath = join14(cwd, `.omc/state/team/${teamName}/workers/${workerName}/inbox.md`);
-  await mkdir4(dirname8(inboxPath), { recursive: true });
+  await mkdir5(dirname8(inboxPath), { recursive: true });
   const finalContent = cliOutputContract && !content.includes(cliOutputContract) ? `${content}
 ${cliOutputContract}` : content;
   await writeFile3(inboxPath, finalContent, "utf-8");
@@ -5443,7 +5449,7 @@ async function appendToInbox(teamName, workerName, message, cwd) {
   const safeWorker = sanitizeName(workerName);
   const inboxPath = join14(cwd, `.omc/state/team/${safeTeam}/workers/${safeWorker}/inbox.md`);
   validateResolvedPath(inboxPath, cwd);
-  await mkdir4(dirname8(inboxPath), { recursive: true });
+  await mkdir5(dirname8(inboxPath), { recursive: true });
   await appendFile3(inboxPath, `
 
 ---
@@ -5451,17 +5457,17 @@ ${message}`, "utf-8");
 }
 async function ensureWorkerStateDir(teamName, workerName, cwd) {
   const workerDir = join14(cwd, `.omc/state/team/${teamName}/workers/${workerName}`);
-  await mkdir4(workerDir, { recursive: true });
+  await mkdir5(workerDir, { recursive: true });
   const mailboxDir = join14(cwd, `.omc/state/team/${teamName}/mailbox`);
-  await mkdir4(mailboxDir, { recursive: true });
+  await mkdir5(mailboxDir, { recursive: true });
   const tasksDir = join14(cwd, `.omc/state/team/${teamName}/tasks`);
-  await mkdir4(tasksDir, { recursive: true });
+  await mkdir5(tasksDir, { recursive: true });
 }
 async function writeWorkerOverlay(params) {
   const { teamName, workerName, cwd } = params;
   const overlay = generateWorkerOverlay(params);
   const overlayPath = join14(cwd, `.omc/state/team/${teamName}/workers/${workerName}/AGENTS.md`);
-  await mkdir4(dirname8(overlayPath), { recursive: true });
+  await mkdir5(dirname8(overlayPath), { recursive: true });
   await writeFile3(overlayPath, overlay, "utf-8");
   return overlayPath;
 }
@@ -6365,7 +6371,7 @@ var init_allocation_policy = __esm({
 
 // src/team/monitor.ts
 import { existsSync as existsSync15 } from "fs";
-import { readFile as readFile9, mkdir as mkdir6 } from "fs/promises";
+import { readFile as readFile9, mkdir as mkdir7 } from "fs/promises";
 import { dirname as dirname11 } from "path";
 async function readJsonSafe3(filePath) {
   try {
@@ -6378,7 +6384,7 @@ async function readJsonSafe3(filePath) {
 }
 async function writeAtomic2(filePath, data) {
   const { writeFile: writeFile8 } = await import("fs/promises");
-  await mkdir6(dirname11(filePath), { recursive: true });
+  await mkdir7(dirname11(filePath), { recursive: true });
   const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
   await writeFile8(tmpPath, data, "utf-8");
   const { rename: rename3 } = await import("fs/promises");
@@ -7136,7 +7142,7 @@ var init_merge_coordinator = __esm({
 });
 
 // src/team/leader-inbox.ts
-import { appendFile as appendFile4, mkdir as mkdir7, writeFile as writeFile5 } from "fs/promises";
+import { appendFile as appendFile4, mkdir as mkdir8, writeFile as writeFile5 } from "fs/promises";
 import { existsSync as existsSync16 } from "fs";
 import { dirname as dirname12, join as join19 } from "path";
 function leaderInboxPath(teamName, cwd) {
@@ -7146,7 +7152,7 @@ function leaderInboxPath(teamName, cwd) {
 async function ensureLeaderInbox(teamName, cwd) {
   const inboxPath = leaderInboxPath(teamName, cwd);
   validateResolvedPath(inboxPath, cwd);
-  await mkdir7(dirname12(inboxPath), { recursive: true });
+  await mkdir8(dirname12(inboxPath), { recursive: true });
   if (!existsSync16(inboxPath)) {
     await writeFile5(inboxPath, LEADER_INBOX_HEADER, "utf-8");
   }
@@ -7155,7 +7161,7 @@ async function ensureLeaderInbox(teamName, cwd) {
 async function appendToLeaderInbox(teamName, message, cwd) {
   const inboxPath = leaderInboxPath(teamName, cwd);
   validateResolvedPath(inboxPath, cwd);
-  await mkdir7(dirname12(inboxPath), { recursive: true });
+  await mkdir8(dirname12(inboxPath), { recursive: true });
   await appendFile4(inboxPath, `
 
 ---
@@ -7243,7 +7249,7 @@ var init_conflict_mailbox = __esm({
 
 // src/team/worker-commit-cadence.ts
 import { existsSync as existsSync17, watch as fsWatch } from "fs";
-import { readFile as readFile10, writeFile as writeFile6, mkdir as mkdir8, unlink as unlink2 } from "fs/promises";
+import { readFile as readFile10, writeFile as writeFile6, mkdir as mkdir9, unlink as unlink2 } from "fs/promises";
 import { join as join20, dirname as dirname13 } from "path";
 import { exec as exec2 } from "child_process";
 function assertSafeWorkerName(workerName) {
@@ -7292,7 +7298,7 @@ async function installPostToolUseHook(worktreePath, workerName) {
     return;
   }
   const claudeDir = join20(worktreePath, ".claude");
-  await mkdir8(claudeDir, { recursive: true });
+  await mkdir9(claudeDir, { recursive: true });
   const settingsPath = join20(claudeDir, "settings.json");
   const hookCommand = buildHookCommand(workerName);
   const merged = await mergeSettingsWithHook(settingsPath, hookCommand);
@@ -7300,7 +7306,7 @@ async function installPostToolUseHook(worktreePath, workerName) {
 }
 async function pauseHookViaSentinel(worktreePath) {
   const sentinelPath = join20(worktreePath, SENTINEL_FILENAME);
-  await mkdir8(dirname13(sentinelPath), { recursive: true });
+  await mkdir9(dirname13(sentinelPath), { recursive: true });
   await writeFile6(sentinelPath, "", "utf-8");
 }
 async function resumeHookViaSentinel(worktreePath) {
@@ -7395,7 +7401,7 @@ var init_worker_commit_cadence = __esm({
 // src/team/merge-orchestrator.ts
 import { execFileSync as execFileSync6 } from "node:child_process";
 import { existsSync as existsSync18 } from "node:fs";
-import { mkdir as mkdir9, appendFile as appendFile5 } from "node:fs/promises";
+import { mkdir as mkdir10, appendFile as appendFile5 } from "node:fs/promises";
 import { dirname as dirname14, join as join21 } from "node:path";
 function mergerWorktreePathFor(repoRoot, teamName) {
   return join21(repoRoot, ".omc", "team", sanitizeName(teamName), "merger");
@@ -7443,7 +7449,7 @@ function assertRuntimeV2Gate() {
 }
 async function appendEvent(repoRoot, teamName, event) {
   const path4 = orchestratorEventLogPath(repoRoot, teamName);
-  await mkdir9(dirname14(path4), { recursive: true });
+  await mkdir10(dirname14(path4), { recursive: true });
   const full = {
     ts: (/* @__PURE__ */ new Date()).toISOString(),
     team: teamName,
@@ -7898,7 +7904,7 @@ ${dirtyFiles.map((f) => `- \`${f}\``).join("\n")}`;
       }
       if (unmerged.length > 0) {
         const auditPath = teardownAuditPath(config.repoRoot, config.teamName);
-        await mkdir9(dirname14(auditPath), { recursive: true });
+        await mkdir10(dirname14(auditPath), { recursive: true });
         for (const u of unmerged) {
           const row = JSON.stringify({
             type: "unmerged_at_shutdown",
@@ -8017,7 +8023,7 @@ __export(runtime_v2_exports, {
 });
 import { join as join22, resolve as resolve4 } from "path";
 import { existsSync as existsSync19 } from "fs";
-import { mkdir as mkdir10, readdir as readdir3, readFile as readFile11, rm as rm4, writeFile as writeFile7 } from "fs/promises";
+import { mkdir as mkdir11, readdir as readdir3, readFile as readFile11, rm as rm4, writeFile as writeFile7 } from "fs/promises";
 import { performance } from "perf_hooks";
 import { execFileSync as execFileSync7 } from "node:child_process";
 function registerTeamOrchestrator(teamName, handle) {
@@ -8449,7 +8455,7 @@ async function rollbackUnpersistedNativeWorktreeStartup(teamName, cwd, cause) {
       await rm4(teamRoot, { recursive: true, force: true });
       return;
     }
-    await mkdir10(teamRoot, { recursive: true });
+    await mkdir11(teamRoot, { recursive: true });
     await writeFile7(join22(teamRoot, "startup-failure.json"), JSON.stringify({
       reason: "startup_failed_before_config_persisted",
       error: errorMessage,
@@ -8457,7 +8463,7 @@ async function rollbackUnpersistedNativeWorktreeStartup(teamName, cwd, cause) {
       recorded_at: (/* @__PURE__ */ new Date()).toISOString()
     }, null, 2), "utf-8");
   } catch (rollbackError) {
-    await mkdir10(teamRoot, { recursive: true });
+    await mkdir11(teamRoot, { recursive: true });
     await writeFile7(join22(teamRoot, "startup-failure.json"), JSON.stringify({
       reason: "startup_failed_before_config_persisted",
       error: errorMessage,
@@ -8534,9 +8540,9 @@ async function startTeamV2(config) {
     } catch {
     }
   }
-  await mkdir10(absPath(leaderCwd, TeamPaths.tasks(sanitized)), { recursive: true });
-  await mkdir10(absPath(leaderCwd, TeamPaths.workers(sanitized)), { recursive: true });
-  await mkdir10(join22(leaderCwd, ".omc", "state", "team", sanitized, "mailbox"), { recursive: true });
+  await mkdir11(absPath(leaderCwd, TeamPaths.tasks(sanitized)), { recursive: true });
+  await mkdir11(absPath(leaderCwd, TeamPaths.workers(sanitized)), { recursive: true });
+  await mkdir11(join22(leaderCwd, ".omc", "state", "team", sanitized, "mailbox"), { recursive: true });
   const missingBinaryLogFailure = createSwallowedErrorLogger(
     "team.runtime-v2.startTeamV2 cli_binary_missing event failed"
   );
@@ -8554,7 +8560,7 @@ async function startTeamV2(config) {
   for (let i = 0; i < config.tasks.length; i++) {
     const taskId = String(i + 1);
     const taskFilePath = absPath(leaderCwd, TeamPaths.taskFile(sanitized, taskId));
-    await mkdir10(join22(taskFilePath, ".."), { recursive: true });
+    await mkdir11(join22(taskFilePath, ".."), { recursive: true });
     await writeFile7(taskFilePath, JSON.stringify({
       id: taskId,
       subject: config.tasks[i].subject,
@@ -8913,7 +8919,7 @@ async function writeWatchdogFailedMarker(teamName, cwd, reason) {
   };
   const root = absPath(cwd, TeamPaths.root(sanitizeTeamName(teamName)));
   const markerPath = join22(root, "watchdog-failed.json");
-  await mkdir10(root, { recursive: true });
+  await mkdir11(root, { recursive: true });
   await writeFile8(markerPath, JSON.stringify(marker, null, 2), "utf-8");
 }
 async function requeueDeadWorkerTasks(teamName, deadWorkerNames, cwd) {
@@ -8935,7 +8941,7 @@ async function requeueDeadWorkerTasks(teamName, deadWorkerNames, cwd) {
       lastFailedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
     const { writeFile: writeFile8 } = await import("fs/promises");
-    await mkdir10(absPath(cwd, TeamPaths.tasks(sanitized)), { recursive: true });
+    await mkdir11(absPath(cwd, TeamPaths.tasks(sanitized)), { recursive: true });
     await writeFile8(sidecarPath, JSON.stringify(sidecar, null, 2), "utf-8");
     const taskPath2 = absPath(cwd, TeamPaths.taskFile(sanitized, task.id));
     try {
@@ -9606,7 +9612,7 @@ init_tmux_session();
 init_worker_bootstrap();
 init_git_worktree();
 init_state();
-import { mkdir as mkdir5, writeFile as writeFile4, readFile as readFile8, rm as rm3, rename as rename2 } from "fs/promises";
+import { mkdir as mkdir6, writeFile as writeFile4, readFile as readFile8, rm as rm3, rename as rename2 } from "fs/promises";
 import { execFileSync as execFileSync4 } from "child_process";
 import { join as join18 } from "path";
 import { existsSync as existsSync14 } from "fs";
@@ -9626,7 +9632,7 @@ function stateRoot(cwd, teamName) {
   return join18(cwd, `.omc/state/team/${teamName}`);
 }
 async function writeJson(filePath, data) {
-  await mkdir5(join18(filePath, ".."), { recursive: true });
+  await mkdir6(join18(filePath, ".."), { recursive: true });
   await writeFile4(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 async function readJsonSafe2(filePath) {
