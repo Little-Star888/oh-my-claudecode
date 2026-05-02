@@ -58,6 +58,8 @@ export { appendTeamCommitHygieneEntries, buildTeamCommitHygieneContext, readTeam
 export type { TeamCommitHygieneArtifactPaths, TeamCommitHygieneContext, TeamCommitHygieneLedger, TeamCommitHygieneTaskSummary, TeamCommitHygieneVocabulary, TeamCommitHygieneVocabularyTerm, TeamOperationalCommitEntry, TeamOperationalCommitKind, TeamOperationalCommitStatus, } from './commit-hygiene.js';
 export { buildRepoAwareTeamExecutionPlan, remapRepoAwareDecompositionMetadataToCreatedTasks, } from './repo-aware-decomposition.js';
 export type { LegacyTeamExecutionPlanInput, RepoAwareTask, RepoAwareTeamExecutionPlan, TaskHintSummary, TeamDecompositionMetadata, } from './repo-aware-decomposition.js';
+export { assertCleanLeaderWorkspaceForWorkerWorktrees, ensureWorktree, isGitRepository, isWorktreeDirty, parseWorktreeMode, planWorktreeTarget, readWorkspaceStatusLines, removeWorktreeForce, rollbackProvisionedWorktrees, } from './worktree.js';
+export type { EnsureWorktreeOptions, EnsureWorktreeResult, ParsedWorktreeMode, PlannedWorktreeTarget, RollbackWorktreeOptions, WorktreeMode, WorktreePlanInput, } from './worktree.js';
 export { checkSentinelReadiness, waitForSentinelReadiness, } from './sentinel-gate.js';
 export type { SentinelReadinessOptions, SentinelGateResult, SentinelWaitOptions, SentinelWaitResult, } from './sentinel-gate.js';
 export type { CliAgentType, CliAgentContract, WorkerLaunchConfig } from './model-contract.js';
