@@ -652,12 +652,12 @@ export async function teamAppendEvent(
   event: Omit<TeamEvent, 'event_id' | 'created_at' | 'team'>,
   cwd: string,
 ): Promise<TeamEvent> {
-  const full: TeamEvent = {
+  const full = {
     event_id: randomUUID(),
     team: teamName,
     created_at: new Date().toISOString(),
     ...event,
-  };
+  } as TeamEvent;
   const p = absPath(cwd, TeamPaths.events(teamName));
   await mkdir(dirname(p), { recursive: true });
   await appendFile(p, `${JSON.stringify(full)}\n`, 'utf8');

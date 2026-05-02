@@ -6,9 +6,9 @@
  * All types used across the team bridge module for MCP worker orchestration.
  */
 
-import type { TeamTaskStatus } from './contracts.js';
+import type { TeamEventType, TeamTaskStatus } from './contracts.js';
 import type { TeamPhase } from './phase-controller.js';
-import type { TeamLeaderNextAction } from './leader-nudge-guidance.js';
+import type { TeamReminderIntent } from './reminder-intents.js';
 import type { CanonicalTeamRole, RoleAssignment } from '../shared/types.js';
 
 /** Bridge daemon configuration — passed via --config file to bridge-entry.ts */
@@ -376,27 +376,22 @@ export interface TeamDispatchRequestInput {
 export interface TeamEvent {
   event_id: string;
   team: string;
-  type:
-    | 'task_completed'
-    | 'task_failed'
-    | 'worker_idle'
-    | 'worker_stopped'
-    | 'message_received'
-    | 'shutdown_ack'
-    | 'shutdown_gate'
-    | 'shutdown_gate_forced'
-    | 'approval_decision'
-    | 'team_leader_nudge';
+  type: TeamEventType;
   worker: string;
   task_id?: string;
   message_id?: string | null;
   reason?: string;
-  next_action?: TeamLeaderNextAction;
-  message?: string;
+  intent?: TeamReminderIntent;
+  state?: WorkerStatus['state'];
+  prev_state?: WorkerStatus['state'];
+  worker_count?: number;
+  to_worker?: string;
+  source_type?: string;
+  metadata?: Record<string, unknown>;
   created_at: string;
+  [key: string]: unknown;
 }
 
-/** Mailbox message between workers */
 export interface TeamMailboxMessage {
   message_id: string;
   from_worker: string;
