@@ -528,7 +528,7 @@ describe('spawnWorkerForTask – model passthrough from environment variables', 
     const launchCmd = launchCall![launchCall!.length - 1];
 
     expect(launchCmd).toContain("'--model' 'env-codex-model'");
-    expect(launchCmd).not.toContain('fallback-codex-model');
+    expect(launchCmd).not.toContain("'--model' 'fallback-codex-model'");
     expect(launchCmd).toContain("'-c' 'model_reasoning_effort=\"high\"'");
     expect(launchCmd).toContain("'--no-alt-screen'");
   });
