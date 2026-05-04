@@ -134,14 +134,12 @@ function selectLaunchHintMatch(matches, normalizedTask, normalizedCommand) {
         const workerCount = match.groups?.count
             ? Number.parseInt(match.groups.count, 10)
             : undefined;
-        const parsedFlags = parseFlags(flags);
         return [{
                 command,
                 task,
                 ...(workerCount == null ? {} : { workerCount }),
                 agentType: match.groups?.role || undefined,
-                autoMerge: parsedFlags.autoMerge,
-                linkedRalph: /\sralph(?:\s|$)/.test(command) || parsedFlags.linkedRalph,
+                linkedRalph: /\sralph(?:\s|$)/.test(command) || parseFlags(flags).linkedRalph,
             }];
     });
     const matchesToConsider = normalizedCommand
@@ -157,7 +155,6 @@ function selectLaunchHintMatch(matches, normalizedTask, normalizedCommand) {
 }
 function parseFlags(flagStr) {
     return {
-        autoMerge: /--auto-merge/.test(flagStr),
         linkedRalph: /--linked-ralph/.test(flagStr),
     };
 }
@@ -205,7 +202,6 @@ export function readApprovedExecutionLaunchHintOutcome(cwd, mode, options = {}) 
                 task: selected.task,
                 workerCount: selected.workerCount,
                 agentType: selected.agentType,
-                ...(selected.autoMerge ? { autoMerge: true } : {}),
                 linkedRalph: selected.linkedRalph,
                 sourcePath: prdPath,
             },

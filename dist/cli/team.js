@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { readFile, rm } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { TEAM_API_OPERATIONS, executeTeamApiOperation as executeCanonicalTeamApiOperation, resolveTeamApiOperation } from '../team/api-interop.js';
+import { executeTeamApiOperation as executeCanonicalTeamApiOperation, resolveTeamApiOperation } from '../team/api-interop.js';
 import { cleanupTeamWorktrees } from '../team/git-worktree.js';
 import { killWorkerPanes, killTeamSession, getWorkerLiveness } from '../team/tmux-session.js';
 import { validateTeamName } from '../team/team-name.js';
@@ -16,13 +16,24 @@ import { readApprovedExecutionLaunchHintOutcome } from '../planning/artifacts.js
 const JOB_ID_PATTERN = /^omc-[a-z0-9]{1,16}$/;
 const VALID_CLI_AGENT_TYPES = new Set(['claude', 'codex', 'gemini', 'cursor']);
 const SUBCOMMANDS = new Set(['start', 'status', 'wait', 'cleanup', 'resume', 'shutdown', 'api', 'help', '--help', '-h']);
-const SUPPORTED_API_OPERATIONS = new Set(TEAM_API_OPERATIONS);
+const SUPPORTED_API_OPERATIONS = new Set([
+    'send-message',
+    'broadcast',
+    'mailbox-list',
+    'mailbox-mark-delivered',
+    'mailbox-mark-notified',
+    'list-tasks',
+    'read-task',
+    'read-config',
+    'get-summary',
+    'orphan-cleanup',
+]);
 const TEAM_API_USAGE = `
 Usage:
   omc team api <operation> --input '<json>' [--json] [--cwd DIR]
 
 Supported operations:
-  ${TEAM_API_OPERATIONS.join('\n  ')}
+  ${Array.from(SUPPORTED_API_OPERATIONS).join(', ')}
 `.trim();
 function getTeamWorkerIdentityFromEnv(env = process.env) {
     const omc = typeof env.OMC_TEAM_WORKER === 'string' ? env.OMC_TEAM_WORKER.trim() : '';
@@ -1014,7 +1025,6 @@ function parseLegacyStartAlias(args) {
             agentType = approvedHintOutcome.hint.agentType
                 ? normalizeAgentType(approvedHintOutcome.hint.agentType)
                 : agentType;
-            autoMerge = approvedHintOutcome.hint.autoMerge === true ? true : autoMerge;
             ralph = approvedHintOutcome.hint.linkedRalph === true ? true : ralph;
         }
     }

@@ -3,12 +3,8 @@ import { mkdtemp, mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { executeTeamApiOperation, LEGACY_TEAM_MCP_TOOLS, resolveTeamApiOperation } from '../api-interop.js';
+import { executeTeamApiOperation } from '../api-interop.js';
 describe('team api compatibility (task + mailbox legacy formats)', () => {
-    it('keeps OMX SSOT legacy orphan-cleanup alias available', () => {
-        expect(LEGACY_TEAM_MCP_TOOLS).toContain('team_orphan_cleanup');
-        expect(resolveTeamApiOperation('team_orphan_cleanup')).toBe('orphan-cleanup');
-    });
     let cwd;
     const teamName = 'compat-team';
     beforeEach(async () => {
@@ -23,7 +19,7 @@ describe('team api compatibility (task + mailbox legacy formats)', () => {
             agent_type: 'executor',
             worker_count: 1,
             max_workers: 20,
-            workers: [{ name: 'worker-1', index: 1, role: 'executor', assigned_tasks: [], task_scope: ['1'] }],
+            workers: [{ name: 'worker-1', index: 1, role: 'executor', assigned_tasks: [] }],
             created_at: new Date().toISOString(),
             tmux_session: 'test:0',
             next_task_id: 2,
@@ -31,37 +27,6 @@ describe('team api compatibility (task + mailbox legacy formats)', () => {
     });
     afterEach(async () => {
         await rm(cwd, { recursive: true, force: true });
-    });
-    it('resolves long display team names through OMX SSOT identity lookup before validation', async () => {
-        const internalName = 'long-display-aaaaaaaa';
-        const displayName = 'this-is-a-long-display-name-that-exceeds-thirty-chars';
-        const base = join(cwd, '.omc', 'state', 'team', internalName);
-        await mkdir(join(base, 'tasks'), { recursive: true });
-        await writeFile(join(base, 'manifest.json'), JSON.stringify({
-            name: internalName,
-            display_name: displayName,
-            requested_name: displayName,
-            identity_source: 'env-session',
-            leader: { session_id: 'session-long' },
-            workers: [],
-            tmux_session: 'test:0',
-            leader_pane_id: '%1',
-        }, null, 2));
-        const previousSessionId = process.env.OMC_SESSION_ID;
-        process.env.OMC_SESSION_ID = 'session-long';
-        try {
-            const result = await executeTeamApiOperation('list-tasks', { team_name: displayName }, cwd);
-            expect(result.ok).toBe(true);
-            if (!result.ok)
-                return;
-            expect(result.data.count).toBe(0);
-        }
-        finally {
-            if (previousSessionId === undefined)
-                delete process.env.OMC_SESSION_ID;
-            else
-                process.env.OMC_SESSION_ID = previousSessionId;
-        }
     });
     it('reads legacy tasks/1.json and writes canonical task-1.json on claim', async () => {
         const legacyTaskPath = join(cwd, '.omc', 'state', 'team', teamName, 'tasks', '1.json');
@@ -145,9 +110,6 @@ describe('team api compatibility (task + mailbox legacy formats)', () => {
             mode: 'auto',
             required_parallel_probe: true,
         });
-        const configAfterCreate = JSON.parse(await readFile(join(cwd, '.omc', 'state', 'team', teamName, 'config.json'), 'utf-8'));
-        expect(configAfterCreate.workers[0]?.assigned_tasks).toContain('2');
-        expect(configAfterCreate.workers[0]?.task_scope).toContain('2');
         const claimResult = await executeTeamApiOperation('claim-task', {
             team_name: teamName,
             task_id: '2',
